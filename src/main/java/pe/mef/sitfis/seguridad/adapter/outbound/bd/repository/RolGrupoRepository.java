@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import pe.mef.sitfis.seguridad.adapter.outbound.bd.entity.RolGrupoJpaEntity;
 import pe.mef.sitfis.seguridad.adapter.outbound.bd.projection.RolGrupoProjection;
-import pe.mef.sitfis.seguridad.application.command.CrearRolGrupoCommand;
+import pe.mef.sitfis.seguridad.application.command.CrearRolGrupoApplicationCommand;
 
 @Repository
 public interface RolGrupoRepository extends JpaRepository<RolGrupoJpaEntity, Long> {
@@ -57,7 +57,7 @@ public interface RolGrupoRepository extends JpaRepository<RolGrupoJpaEntity, Lon
           rg.flagAdjuntarArchivo = :#{#command.flagAdjuntarArchivo}
           WHERE rg.id = :#{#command.id}
       """)
-  void actualizarRolGrupoConRecord(@Param("command") CrearRolGrupoCommand command);
+  void actualizarRolGrupoConRecord(@Param("command") CrearRolGrupoApplicationCommand command);
 
   @Query("SELECT case when (count(lrg) > 0) then true else false end FROM ListaRolGrupoJpaEntity lrg WHERE lrg.rolGrupo.id = :id")
   boolean existsRelatedEntities(@Param("id") Long id);

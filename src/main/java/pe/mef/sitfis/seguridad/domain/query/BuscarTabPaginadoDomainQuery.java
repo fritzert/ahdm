@@ -11,4 +11,21 @@ public record BuscarTabPaginadoDomainQuery(
     TabId tabId,
     PaginaApplicationQuery pagina) {
 
+  /**
+   * Constructor alternativo que acepta valores que pueden ser nulos.
+   */
+  public static BuscarTabPaginadoDomainQuery crear(
+      Long menuIdValor,
+      Long submenuIdValor,
+      Long tabIdValor,
+      PaginaApplicationQuery pagina) {
+
+    MenuId menuId = menuIdValor != null ? MenuId.de(menuIdValor) : null;
+    SubmenuId submenuId = submenuIdValor != null ? SubmenuId.de(submenuIdValor) : null;
+    TabId tabId = tabIdValor != null ? TabId.de(tabIdValor) : null;
+
+    return new BuscarTabPaginadoDomainQuery(menuId, submenuId, tabId, pagina);
+  }
+
+
 }

@@ -48,9 +48,9 @@ public record MenuNombreValue(String valor) {
    * @param nombre valor del nombre
    * @return nueva instancia de MenuNombreValue
    */
-  public static MenuNombreValue de(String nombre) {
-    return new MenuNombreValue(nombre);
-  }
+//  public static MenuNombreValue de(String nombre) {
+//    return new MenuNombreValue(nombre);
+//  }
 
   /**
    * Obtiene el valor formateado para mostrar.

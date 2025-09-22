@@ -24,8 +24,8 @@ public record MenuOrdenValue(Integer valor) {
    * @param orden valor del orden
    * @return nueva instancia de MenuOrdenValue
    */
-  public static MenuOrdenValue de(Integer orden) {
-    return new MenuOrdenValue(orden);
-  }
+//  public static MenuOrdenValue de(Integer orden) {
+//    return new MenuOrdenValue(orden);
+//  }
 
 }

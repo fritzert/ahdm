@@ -34,7 +34,7 @@ public class TabAggregate {
     this.orden = orden;
     this.menuId = menuId;
     this.submenuId = submenuId;
-    validarInvariantes();
+    validarReglasDeNegocio();
   }
 
   public static TabAggregate reconstruir(TabId id, TabNombreValue nombre,
@@ -53,7 +53,7 @@ public class TabAggregate {
    *
    * @throws IllegalArgumentException si alguna regla de negocio no se cumple
    */
-  private void validarInvariantes() {
+  private void validarReglasDeNegocio() {
     if (nombre == null) {
       throw new IllegalArgumentException("El nombre del tab no puede ser nulo");
     }

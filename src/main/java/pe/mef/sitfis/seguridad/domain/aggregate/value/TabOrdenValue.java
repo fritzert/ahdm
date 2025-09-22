@@ -40,7 +40,7 @@ public record TabOrdenValue(Integer valor) {
    * @param orden valor del orden
    * @return nueva instancia de TabOrdenValue
    */
-  public static TabOrdenValue de(Integer orden) {
-    return new TabOrdenValue(orden);
-  }
+//  public static TabOrdenValue de(Integer orden) {
+//    return new TabOrdenValue(orden);
+//  }
 }

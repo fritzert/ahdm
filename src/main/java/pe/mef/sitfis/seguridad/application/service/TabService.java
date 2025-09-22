@@ -21,14 +21,14 @@ public class TabService implements
 
   private final BuscarTabPorMenuSubmenuPort buscarTabPorMenuSubmenuPort;
   private final BuscarTabPorParametrosPaginadoPort paginadoPort;
-  private final TabDomainMapper domainMapper;
+  private final TabDomainMapper mapper;
 
   @Override
   public List<TabDto> buscarPorMenuSubmenu(BuscarTabApplicationQuery query) {
-    var domainQuery = domainMapper.toDomainQuery(query);
-
+    var domainQuery = mapper.toDomainQuery(query);
     List<TabAggregate> aggregates = buscarTabPorMenuSubmenuPort.buscarTabs(domainQuery);
-
+    return aggregates.stream().map(mapper::toDto).toList();
+    /*
     return aggregates.stream()
         .map(aggregate -> new TabDto(
             aggregate.getId() != null ? aggregate.getId().valor() : null,
@@ -37,28 +37,14 @@ public class TabService implements
             aggregate.getOrden().valor()
         ))
         .toList();
+     */
   }
 
   @Override
   public Pagina<TabPaginadoDto> buscarPorMenuSubmenuTabPaginado(
       BuscarTabPaginadoApplicationQuery query) {
-    var domainQuery = domainMapper.toPaginadoDomainQuery(query);
-
-    List<TabAggregate> aggregates = paginadoPort.buscarPaginado(domainQuery);
-
-    var applicationQuery = new BuscarTabPaginadoApplicationQuery(menuId, submenuId, tabId,
-        paginaQuery);
-    return paginadoPort.buscarPaginado(applicationQuery);
+    var domainQuery = mapper.toPaginadoDomainQuery(query);
+    return paginadoPort.buscarPaginado(domainQuery);
   }
-
-  /*
-  @Override
-  public Pagina<TabPaginadoDto> buscarPorMenuSubmenuTabPaginado(Long menuId, Long submenuId,
-      Long tabId, PaginaApplicationQuery paginaQuery) {
-    var applicationQuery = new BuscarTabPaginadoApplicationQuery(menuId, submenuId, tabId,
-        paginaQuery);
-    return paginadoPort.buscarPaginado(applicationQuery);
-  }
-  */
 
 }

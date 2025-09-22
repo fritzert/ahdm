@@ -13,14 +13,12 @@ public record RolGrupoId(Long valor) {
    * @throws IllegalArgumentException si el valor es nulo o menor o igual a cero
    */
   public RolGrupoId { // constructor compacto
-    System.out.println("emtrp primero");
     if (valor != null && valor <= 0) {
       throw new IllegalArgumentException("El ID del rolGrupo debe ser un número positivo");
     }
   }
 
   public static RolGrupoId nuevo() {
-    System.out.println("es nuevo");
     return new RolGrupoId(null); // ID temporal
   }
 

@@ -3,6 +3,7 @@ package pe.mef.sitfis.seguridad.adapter.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pe.mef.sitfis.seguridad.application.mapper.MenuDomainMapper;
+import pe.mef.sitfis.seguridad.application.mapper.RolGrupoDomainMapper;
 import pe.mef.sitfis.seguridad.application.mapper.SubMenuDomainMapper;
 import pe.mef.sitfis.seguridad.application.mapper.TabDomainMapper;
 import pe.mef.sitfis.seguridad.application.port.inbound.ListarRestriccionesPort;
@@ -69,9 +70,11 @@ public class SpringConfig {
       GuardarRolGrupoPort guardarRolGrupoPort,
       ActualizarRolGrupoPort actualizarRolGrupoPort,
       EliminarRolGrupoPort eliminarRolGrupoPort) {
-    return new RolGrupoService(obtenerRolGrupoPort, buscarRolGrupoPorGrupoIdPort,
+    return new RolGrupoService(obtenerRolGrupoPort,
+        buscarRolGrupoPorGrupoIdPort,
         guardarRolGrupoPort,
-        actualizarRolGrupoPort, eliminarRolGrupoPort);
+        actualizarRolGrupoPort,
+        eliminarRolGrupoPort, RolGrupoDomainMapper.INSTANCE);
   }
 
   @Bean

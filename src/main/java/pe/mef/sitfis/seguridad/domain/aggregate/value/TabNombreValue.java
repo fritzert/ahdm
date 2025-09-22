@@ -54,9 +54,9 @@ public record TabNombreValue(String valor) {
    * @param nombre valor del nombre
    * @return nueva instancia de TabNombreValue
    */
-  public static TabNombreValue de(String nombre) {
-    return new TabNombreValue(nombre);
-  }
+//  public static TabNombreValue de(String nombre) {
+//    return new TabNombreValue(nombre);
+//  }
 
   /**
    * Obtiene el valor formateado para mostrar.

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import pe.mef.sitfis.seguridad.adapter.inbound.api.dto.ActualizarGrupoRequest;
 import pe.mef.sitfis.seguridad.adapter.inbound.api.dto.ActualizarRolGrupoRequest;
 import pe.mef.sitfis.seguridad.adapter.inbound.api.dto.CrearRolGrupoRequest;
 import pe.mef.sitfis.seguridad.adapter.inbound.api.dto.RolGrupoInfoResponse;
@@ -39,7 +38,6 @@ public class RolGrupoController implements RolGrupoApi {
   private final CrearRolGrupoUseCase crearRolGrupoUseCase;
   private final ActualizarRolGrupoUseCase actualizarRolGrupoUseCase;
   private final EliminarRolGrupoUseCase eliminarRolGrupoUseCase;
-
   private final RolGrupoApiMapper mapper;
 
   @Override
@@ -47,9 +45,8 @@ public class RolGrupoController implements RolGrupoApi {
   public ResponseEntity<SuccessResponse<List<RolGrupoResponse>>> listarPorGrupoId(
       @PathVariable("grupoId") Long grupoId) {
     var query = mapper.toQuery(grupoId);
-    log.info("Query: {}", query);
     var resultado = rolGrupoPorGrupoIdUseCase.listarPorGrupoId(query);
-    var response = mapper.toResponse(resultado);
+    var response = mapper.toListResponse(resultado);
     return SuccessResponseHandler.SUCCESS(response);
   }
 

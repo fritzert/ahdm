@@ -8,21 +8,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import pe.mef.sitfis.seguridad.adapter.outbound.bd.mapper.TabJpaMapper;
 import pe.mef.sitfis.seguridad.adapter.outbound.bd.repository.TabRepository;
+import pe.mef.sitfis.seguridad.application.dto.TabPaginadoDto;
 import pe.mef.sitfis.seguridad.application.port.outbound.BuscarTabPorMenuSubmenuPort;
 import pe.mef.sitfis.seguridad.application.port.outbound.BuscarTabPorParametrosPaginadoPort;
 import pe.mef.sitfis.seguridad.application.query.Pagina;
 import pe.mef.sitfis.seguridad.domain.aggregate.TabAggregate;
-import pe.mef.sitfis.seguridad.domain.aggregate.id.MenuId;
-import pe.mef.sitfis.seguridad.domain.aggregate.id.SubmenuId;
-import pe.mef.sitfis.seguridad.domain.aggregate.id.TabId;
-import pe.mef.sitfis.seguridad.domain.aggregate.value.TabComponenteValue;
-import pe.mef.sitfis.seguridad.domain.aggregate.value.TabNombreValue;
-import pe.mef.sitfis.seguridad.domain.aggregate.value.TabOrdenValue;
 import pe.mef.sitfis.seguridad.domain.query.BuscarTabDomainQuery;
 import pe.mef.sitfis.seguridad.domain.query.BuscarTabPaginadoDomainQuery;
-//import pe.mef.sitfis.seguridad.domain.query.BuscarTabDomainQuery;
-//import pe.mef.sitfis.seguridad.domain.query.BuscarTabPaginadoDomainQuery;
-//import pe.mef.sitfis.seguridad.domain.query.PaginaDomainQuery;
 
 @Slf4j
 @Component
@@ -40,7 +32,8 @@ public class TabPersistenceAdapter implements
         query.submenuId().valor(),
         query.menuId().valor()
     );
-
+    return entities.stream().map(mapper::toAggregate).toList();
+    /*
     return entities.stream()
         .map(entity -> TabAggregate.reconstruir(
             TabId.de(entity.getId()),
@@ -51,21 +44,21 @@ public class TabPersistenceAdapter implements
             SubmenuId.de(entity.getSubmenu().getId())
         ))
         .toList();
+     */
   }
 
-  
-
-  /*
   @Override
-  public Pagina<TabPaginadoDto> buscarPaginado(BuscarTabPaginadoApplicationQuery query) {
-    Long menuId = query.menuId();
-    Long submenuId = query.submenuId();
-    Long tabId = query.tabId();
-//    PaginaDomainQuery paginaQuery = query.paginaDomainQuery();
-    PaginaApplicationQuery paginaQuery = query.pagina();
+  public Pagina<TabPaginadoDto> buscarPaginado(BuscarTabPaginadoDomainQuery query) {
+    Long menuId = query.menuId() != null ? query.menuId().valor() : null;
+    Long submenuId = query.submenuId() != null ? query.submenuId().valor() : null;
+    Long tabId = query.tabId() != null ? query.tabId().valor() : null;
+    var paginaQuery = query.pagina();
 
-    var pageable = PageRequest.of(paginaQuery.pagina(), paginaQuery.tamanio(),
-        Sort.by(Sort.Direction.DESC, "tabNombre"));
+    var pageable = PageRequest.of(
+        paginaQuery.pagina(),
+        paginaQuery.tamanio(),
+        Sort.by(Sort.Direction.DESC, "tabNombre")
+    );
 
     var resultado = repository.findByMenuSubmenuTabPaginado(
         menuId, submenuId, tabId, pageable);
@@ -81,5 +74,4 @@ public class TabPersistenceAdapter implements
         resultado.getTotalElements()
     );
   }
-   */
 }

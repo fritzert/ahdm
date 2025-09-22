@@ -18,11 +18,9 @@ public interface TabApiMapper {
   BuscarTabApplicationQuery toQuery(String nombre, Long submenuId, Long menuId);
 
   BuscarTabPaginadoApplicationQuery toPaginadoQuery(Long menuId, Long submenuId, Long tabId,
-      PaginaApplicationQuery pagina);
+      PaginaApplicationQuery paginaApplicationQuery);
 
   List<TabComboResponse> toListResponse(List<TabDto> dtos);
-
-  List<TabPaginadoResponse> toListPaginadoResponse(List<TabPaginadoDto> dtoList);
 
   Pagina<TabPaginadoResponse> toPaginadoResponse(Pagina<TabPaginadoDto> paginaDto);
 

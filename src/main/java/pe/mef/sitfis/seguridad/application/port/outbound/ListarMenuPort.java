@@ -7,8 +7,6 @@ import pe.mef.sitfis.seguridad.domain.query.ListarMenuDomainQuery;
 
 public interface ListarMenuPort {
 
-  //MenuAggregate guardar(MenuAggregate aggregate);
-
   /**
    * Lista todos los menus aplicando el filtro especificado.
    *

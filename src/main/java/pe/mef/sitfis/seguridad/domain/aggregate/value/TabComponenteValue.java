@@ -41,9 +41,9 @@ public record TabComponenteValue(String valor) {
    * @param componente valor del componente
    * @return nueva instancia de TabComponenteValue
    */
-  public static TabComponenteValue de(String componente) {
-    return new TabComponenteValue(componente);
-  }
+//  public static TabComponenteValue de(String componente) {
+//    return new TabComponenteValue(componente);
+//  }
 
   /**
    * Obtiene el valor formateado para mostrar.

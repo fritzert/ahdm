@@ -10,11 +10,13 @@ import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagEnviarBandejaV
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagEnviarEtapaValue;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagOperacionValue;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagRestriccionValue;
+import pe.mef.sitfis.seguridad.domain.command.ActualizarRolGrupoDomainCommand;
+import pe.mef.sitfis.seguridad.domain.command.CrearRolGrupoDomainCommand;
 import pe.mef.sitfis.seguridad.domain.exception.RolGrupoInvalidoDomainException;
 
 public class RolGrupoAggregate {
 
-  private final RolGrupoId id;
+  private RolGrupoId id;
   private final RolId rolId;
   private final GrupoId grupoId;
   private final RolGrupoFlagRestriccionValue flagRestriccion;
@@ -49,10 +51,65 @@ public class RolGrupoAggregate {
   }
 
   /**
+   * Crea un nuevo RolGrupoAggregate para creación.
+   */
+  public static RolGrupoAggregate crear(CrearRolGrupoDomainCommand command) {
+    return new RolGrupoAggregate(
+        RolGrupoId.nuevo(),
+        command.rolId(),
+        command.grupoId(),
+        command.flagRestriccion(),
+        command.flagConsulta(),
+        command.flagOperacion(),
+        command.flagAsignarRecursos(),
+        command.flagEnviarBandeja(),
+        command.flagEnviarEtapa(),
+        command.flagAdjuntarArchivo()
+    );
+  }
+
+  /**
+   * Crea un RolGrupoAggregate actualizado manteniendo el ID.
+   */
+  public static RolGrupoAggregate actualizar(ActualizarRolGrupoDomainCommand command) {
+
+    return new RolGrupoAggregate(
+        command.id(), // Mantener ID existente
+        command.rolId(),
+        command.grupoId(),
+        command.flagRestriccion(),
+        command.flagConsulta(),
+        command.flagOperacion(),
+        command.flagAsignarRecursos(),
+        command.flagEnviarBandeja(),
+        command.flagEnviarEtapa(),
+        command.flagAdjuntarArchivo()
+    );
+  }
+
+  public static RolGrupoAggregate reconstruir(RolGrupoId id, RolId rolId, GrupoId grupoId,
+      RolGrupoFlagRestriccionValue flagRestriccion, RolGrupoFlagConsultaValue flagConsulta,
+      RolGrupoFlagOperacionValue flagOperacion,
+      RolGrupoFlagAsignarRecursosValue flagAsignarRecursos,
+      RolGrupoFlagEnviarBandejaValue flagEnviarBandeja,
+      RolGrupoFlagEnviarEtapaValue flagEnviarEtapa,
+      RolGrupoFlagAdjuntarArchivoValue flagAdjuntarArchivo) {
+    return new RolGrupoAggregate(id, rolId, grupoId, flagRestriccion, flagConsulta,
+        flagOperacion, flagAsignarRecursos, flagEnviarBandeja, flagEnviarEtapa,
+        flagAdjuntarArchivo);
+  }
+
+  public RolGrupoAggregate conId(RolGrupoId nuevoId) {
+    this.id = nuevoId;
+    return this;
+  }
+
+  /**
    * Valida las reglas de negocio básicas del aggregate.
    */
   private void validarReglasDeNegocio() {
     if (rolId == null) {
+
       throw new IllegalArgumentException("El ID del Rol no puede ser nulo");
     }
     if (grupoId == null) {
@@ -81,19 +138,23 @@ public class RolGrupoAggregate {
     }
   }
 
+  public boolean esNuevo() {
+    return id == null || id.esNuevo();
+  }
+
   /**
    * Valida reglas para creación de nuevo RolGrupo.
    */
   public void validarCreacion() {
     validarReglasDeNegocio();
 
-    // Validaciones específicas de creación
-    if (id != null) {
+    // Validaciones especificas de creacion
+    if (!esNuevo()) {
       throw new RolGrupoInvalidoDomainException(
-          "Un nuevo RolGrupo no debe tener ID asignado");
+          "Un nuevo RolGrupo no debe tener un ID preexistente asignado");
     }
 
-    validarConsistenciaDeFlags();
+    //validarConsistenciaDeFlags();
     validarReglasDeNegocioEspecificas();
   }
 
@@ -103,13 +164,13 @@ public class RolGrupoAggregate {
   public void validarActualizacion() {
     validarReglasDeNegocio();
 
-    // Validaciones específicas de actualización
-    if (id == null) {
+    // Validaciones especificas de actualizacion
+    if (esNuevo()) {
       throw new RolGrupoInvalidoDomainException(
-          "Un RolGrupo existente debe tener ID");
+          "Un RolGrupo que se va a actualizar debe tener un ID existente");
     }
 
-    validarConsistenciaDeFlags();
+    //validarConsistenciaDeFlags();
     validarReglasDeNegocioEspecificas();
   }
 
@@ -117,25 +178,25 @@ public class RolGrupoAggregate {
    * Valida reglas para eliminación de RolGrupo.
    */
   public void validarEliminacion() {
-    // Validación 1: Estado del aggregate
+    // Validacion 1: Estado del aggregate
     if (!esEstadoValido()) {
       throw new RolGrupoInvalidoDomainException(
           "El RolGrupo no está en un estado válido para ser eliminado");
     }
 
-    // Validación 2: Consistencia de datos
+    // Validacion 2: Consistencia de datos
     if (!tieneIdsValidos()) {
       throw new RolGrupoInvalidoDomainException(
           "El RolGrupo tiene IDs inválidos y no puede ser eliminado");
     }
 
-    // Validación 3: Flags críticos
+    // Validacion 3: Flags críticos
     if (tieneFlagsCriticosActivos()) {
       throw new RolGrupoInvalidoDomainException(
           "El RolGrupo tiene configuraciones críticas activas que impiden su eliminación");
     }
 
-    // Validación 4: Integridad referencial interna
+    // Validacion 4: Integridad referencial interna
     if (!esIntegridadReferencialValida()) {
       throw new RolGrupoInvalidoDomainException(
           "El RolGrupo no cumple con la integridad referencial requerida");
@@ -145,8 +206,9 @@ public class RolGrupoAggregate {
   /**
    * Valida consistencia entre flags según reglas de negocio.
    */
+  /*
   private void validarConsistenciaDeFlags() {
-    // Regla de negocio: Si tiene restricción activa, debe tener consulta
+    // Regla de negocio: Si tiene restriccion activa, debe tener consulta
     if (flagRestriccion.valor() == 1 && flagConsulta.valor() == 0) {
       throw new RolGrupoInvalidoDomainException(
           "Un RolGrupo con restricción activa debe tener permisos de consulta");
@@ -182,6 +244,7 @@ public class RolGrupoAggregate {
           "Un RolGrupo que puede adjuntar archivos debe tener permisos de operación");
     }
   }
+  */
 
   /**
    * Valida reglas de negocio específicas del dominio.
@@ -320,7 +383,6 @@ public class RolGrupoAggregate {
         flagAdjuntarArchivo.valor() == 1;
   }
 
-  // Getters
   public RolGrupoId getId() {
     return id;
   }
@@ -384,9 +446,14 @@ public class RolGrupoAggregate {
         "id=" + id +
         ", rolId=" + rolId +
         ", grupoId=" + grupoId +
-        ", flagRestriccion=" + flagRestriccion.valor() +
-        ", flagConsulta=" + flagConsulta.valor() +
-        ", flagOperacion=" + flagOperacion.valor() +
+        ", flagRestriccion=" + flagRestriccion +
+        ", flagConsulta=" + flagConsulta +
+        ", flagOperacion=" + flagOperacion +
+        ", flagAsignarRecursos=" + flagAsignarRecursos +
+        ", flagEnviarBandeja=" + flagEnviarBandeja +
+        ", flagEnviarEtapa=" + flagEnviarEtapa +
+        ", flagAdjuntarArchivo=" + flagAdjuntarArchivo +
         '}';
   }
+
 }

@@ -3,13 +3,13 @@ package pe.mef.sitfis.seguridad.application.service;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import pe.mef.sitfis.seguridad.application.command.ActualizarRolGrupoCommand;
-import pe.mef.sitfis.seguridad.application.command.CrearRolGrupoCommand;
+import pe.mef.sitfis.seguridad.application.command.ActualizarRolGrupoApplicationCommand;
+import pe.mef.sitfis.seguridad.application.command.CrearRolGrupoApplicationCommand;
 import pe.mef.sitfis.seguridad.application.command.EliminarRolGrupoCommand;
-import pe.mef.sitfis.seguridad.application.command.GuardarRolGrupoCommand;
 import pe.mef.sitfis.seguridad.application.command.ObtenerRolGrupoCommand;
 import pe.mef.sitfis.seguridad.application.dto.RolGrupoDto;
 import pe.mef.sitfis.seguridad.application.dto.RolGrupoInfoDto;
+import pe.mef.sitfis.seguridad.application.mapper.RolGrupoDomainMapper;
 import pe.mef.sitfis.seguridad.application.port.inbound.ActualizarRolGrupoUseCase;
 import pe.mef.sitfis.seguridad.application.port.inbound.CrearRolGrupoUseCase;
 import pe.mef.sitfis.seguridad.application.port.inbound.EliminarRolGrupoUseCase;
@@ -22,7 +22,6 @@ import pe.mef.sitfis.seguridad.application.port.outbound.ObtenerRolGrupoPort;
 import pe.mef.sitfis.seguridad.application.query.ListarRolGrupoApplicationQuery;
 import pe.mef.sitfis.seguridad.domain.aggregate.RolGrupoAggregate;
 import pe.mef.sitfis.seguridad.domain.aggregate.id.GrupoId;
-import pe.mef.sitfis.seguridad.domain.aggregate.id.RolGrupoId;
 import pe.mef.sitfis.seguridad.domain.aggregate.id.RolId;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagAdjuntarArchivoValue;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagAsignarRecursosValue;
@@ -31,6 +30,8 @@ import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagEnviarBandejaV
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagEnviarEtapaValue;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagOperacionValue;
 import pe.mef.sitfis.seguridad.domain.aggregate.value.RolGrupoFlagRestriccionValue;
+import pe.mef.sitfis.seguridad.domain.command.ActualizarRolGrupoDomainCommand;
+import pe.mef.sitfis.seguridad.domain.command.CrearRolGrupoDomainCommand;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,20 +46,18 @@ public class RolGrupoService implements
   private final GuardarRolGrupoPort guardarRolGrupoPort;
   private final ActualizarRolGrupoPort actualizarRolGrupoPort;
   private final EliminarRolGrupoPort eliminarRolGrupoPort;
+  private final RolGrupoDomainMapper domainMapper;
 //  private final ValidarRolGrupoService validarRolGrupoService;
 
   @Override
   public List<RolGrupoDto> listarPorGrupoId(ListarRolGrupoApplicationQuery query) {
-    return buscarRolGrupoPorGrupoIdPort.buscarPorGrupoId(query);
+    var domainQuery = domainMapper.toDomainQuery(query);
+    return buscarRolGrupoPorGrupoIdPort.buscarPorGrupoId(domainQuery);
   }
 
   @Override
-  public RolGrupoInfoDto crear(CrearRolGrupoCommand command) {
-    log.info("Creando rolGrupo con datos: {}", command);
-    // 1. Crear aggregate manualmente
-    RolGrupoAggregate nuevoRolGrupo = new RolGrupoAggregate(
-//        null, // ID se asigna al guardar
-        RolGrupoId.nuevo(),
+  public RolGrupoInfoDto crear(CrearRolGrupoApplicationCommand command) {
+    var domainCommand = new CrearRolGrupoDomainCommand(
         RolId.de(command.rolId()),
         GrupoId.de(command.grupoId()),
         new RolGrupoFlagRestriccionValue(command.flagRestriccion()),
@@ -69,62 +68,29 @@ public class RolGrupoService implements
         new RolGrupoFlagEnviarEtapaValue(command.flagEnviarEtapa()),
         new RolGrupoFlagAdjuntarArchivoValue(command.flagAdjuntarArchivo())
     );
+
+    var nuevoAgregado = RolGrupoAggregate.crear(domainCommand);
 
     // 2. Validaciones de dominio
-    //validarRolGrupoService.validarCreacion(nuevoRolGrupo);
+    //validarRolGrupoService.validarCreacion(nuevoAgregado);
 
     // 3. Validaciones del aggregate
-    //nuevoRolGrupo.validarCreacion();
+    nuevoAgregado.validarCreacion();
 
-    // 4. Transformar a ApplicationCommand para el puerto
-    var guardarCommand = new GuardarRolGrupoCommand(
-        command.rolId(),
-        command.grupoId(),
-        command.flagRestriccion(),
-        command.flagConsulta(),
-        command.flagOperacion(),
-        command.flagAsignarRecursos(),
-        command.flagEnviarBandeja(),
-        command.flagEnviarEtapa(),
-        command.flagAdjuntarArchivo()
-    );
+    // 4. Guardar aggregate
+    var agregadoGuardado = guardarRolGrupoPort.guardar(domainCommand);
 
-    // 5. El puerto recibe ApplicationCommand
-//    RolGrupoAggregate agregadoGuardado = guardarRolGrupoPort.guardar(guardarCommand);
-
-    // 6. Retornar DTO
-//    return new RolGrupoInfoDto(
-//        agregadoGuardado.getId().valor(),
-//        agregadoGuardado.getRolId().valor(),
-//        agregadoGuardado.getGrupoId().valor()
-//    );
-
-//    var dto = new CrearRolGrupoDto(
-//        command.rolId(),
-//        command.grupoId(),
-//        command.flagRestriccion(),
-//        command.flagConsulta(),
-//        command.flagOperacion(),
-//        command.flagAsignarRecursos(),
-//        command.flagEnviarBandeja(),
-//        command.flagEnviarEtapa(),
-//        command.flagAdjuntarArchivo()
-//    );
-//    return guardarRolGrupoPort.guardar(guardarCommand);
-    return guardarRolGrupoPort.guardar(command);
+    // 5. Retornar DTO
+    return construirInfoDto(agregadoGuardado);
   }
 
   @Override
-  public RolGrupoInfoDto actualizar(Long id, ActualizarRolGrupoCommand command) {
-    // 1. Obtener aggregate existente
+  public RolGrupoInfoDto actualizar(Long id, ActualizarRolGrupoApplicationCommand command) {
     var obtenerCommand = new ObtenerRolGrupoCommand(id);
-//    RolGrupoAggregate rolGrupoExistente = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
-    var dto = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
+    var rolGrupoExistente = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
 
-    // 2. Crear nuevo aggregate con cambios (lógica de dominio)
-    RolGrupoAggregate rolGrupoActualizado = new RolGrupoAggregate(
-//        rolGrupoExistente.getId(),
-        RolGrupoId.de(dto.id()),
+    var actualizarCommand = new ActualizarRolGrupoDomainCommand(
+        rolGrupoExistente.getId(),
         RolId.de(command.rolId()),
         GrupoId.de(command.grupoId()),
         new RolGrupoFlagRestriccionValue(command.flagRestriccion()),
@@ -135,6 +101,9 @@ public class RolGrupoService implements
         new RolGrupoFlagEnviarEtapaValue(command.flagEnviarEtapa()),
         new RolGrupoFlagAdjuntarArchivoValue(command.flagAdjuntarArchivo())
     );
+
+    // 2. Crear nuevo aggregate con cambios (lógica de dominio)
+    var rolGrupoActualizado = RolGrupoAggregate.actualizar(actualizarCommand);
 
     // 3. Validaciones de dominio
     //validarRolGrupoService.validarActualizacion(rolGrupoActualizado, rolGrupoExistente);
@@ -142,31 +111,11 @@ public class RolGrupoService implements
     // 4. Validaciones del aggregate
     //rolGrupoActualizado.validarActualizacion();
 
-    // 5. Transformar a ApplicationCommand para el puerto
-    var actualizarCommand = new ActualizarRolGrupoCommand(
-        id,
-        command.rolId(),
-        command.grupoId(),
-        command.flagRestriccion(),
-        command.flagConsulta(),
-        command.flagOperacion(),
-        command.flagAsignarRecursos(),
-        command.flagEnviarBandeja(),
-        command.flagEnviarEtapa(),
-        command.flagAdjuntarArchivo()
-    );
+    // 5. Actualizar aggregate
+    var agregadoActualizado = actualizarRolGrupoPort.actualizar(actualizarCommand);
 
-    // 6. El puerto recibe ApplicationCommand
-//    RolGrupoAggregate agregadoActualizado = actualizarRolGrupoPort.actualizar(actualizarCommand);
-
-//    // 7. Retornar DTO
-//    return new RolGrupoInfoDto(
-//        agregadoActualizado.getId().valor(),
-//        agregadoActualizado.getRolId().valor(),
-//        agregadoActualizado.getGrupoId().valor()
-//    );
-
-    return actualizarRolGrupoPort.actualizar(actualizarCommand);
+    // 6. Retornar DTO
+    return construirInfoDto(agregadoActualizado);
   }
 
   @Override
@@ -175,7 +124,7 @@ public class RolGrupoService implements
     // 1. Obtener aggregate del dominio
     var obtenerCommand = new ObtenerRolGrupoCommand(command.id());
 //    RolGrupoAggregate rolGrupoAggregate = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
-    var dto = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
+    var rolGrupoAggregate = obtenerRolGrupoPort.obtenerPorId(obtenerCommand);
 
     var id = command.id();
 //    RolGrupoAggregate rolGrupoAggregate = obtenerRolGrupoPort.obtenerPorId(id);
@@ -190,7 +139,7 @@ public class RolGrupoService implements
     // 4. Transformar a ApplicationCommand para el puerto
     var eliminarCommand = new EliminarRolGrupoCommand(id);
 
-    // 4. Ejecutar la eliminación física
+    // 5. Ejecutar la eliminación física
     eliminarRolGrupoPort.eliminar(eliminarCommand);
 
     log.info("RolGrupo con ID {} eliminado exitosamente", id);
@@ -211,7 +160,14 @@ public class RolGrupoService implements
 //      log.error("Error inesperado al eliminar RolGrupo {}: {}", id, e.getMessage());
 //      throw new BusinessException("Error interno del sistema");
 //    }
+  }
 
+  private RolGrupoInfoDto construirInfoDto(RolGrupoAggregate aggregate) {
+    return new RolGrupoInfoDto(
+        aggregate.getId().valor(),
+        aggregate.getRolId().valor(),
+        aggregate.getGrupoId().valor()
+    );
   }
 
 }

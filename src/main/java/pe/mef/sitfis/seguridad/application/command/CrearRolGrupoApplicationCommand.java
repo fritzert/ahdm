@@ -1,6 +1,6 @@
 package pe.mef.sitfis.seguridad.application.command;
 
-public record CrearRolGrupoCommand(
+public record CrearRolGrupoApplicationCommand(
     Long rolId,
     Long grupoId,
     int flagRestriccion,

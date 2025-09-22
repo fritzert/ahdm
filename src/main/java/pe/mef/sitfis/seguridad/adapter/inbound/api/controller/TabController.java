@@ -51,25 +51,11 @@ public class TabController implements TabApi {
       @RequestParam(value = "id_menu", required = false) Long menuId,
       @RequestParam(value = "id_submenu", required = false) Long submenuId,
       @RequestParam(name = "id_tab", required = false) Long tabId) {
-    // 1. Se usa el mapper para crear el objeto Query
-    var query = mapper.toPaginadoQuery(menuId, submenuId, tabId, new PaginaApplicationQuery(page, size, null, null));
-    // 2. Se llama al use case con un solo objeto Query
+    var query = mapper.toPaginadoQuery(menuId, submenuId, tabId,
+        new PaginaApplicationQuery(page, size, null, null));
     var resultado = paginadoUseCase.buscarPorMenuSubmenuTabPaginado(query);
-    // 3. Se usa el mapper para transformar el resultado completo a la respuesta
     var response = mapper.toPaginadoResponse(resultado);
     return SuccessResponseHandler.SUCCESS(response);
-
-    /*
-    var query = new PaginaApplicationQuery(page, size, null, null);
-    var resultado = paginadoUseCase.buscarPorMenuSubmenuTabPaginado(menuId, submenuId, tabId,
-        query);
-    var response = new Pagina<>(
-        mapper.toListPaginadoResponse(resultado.contenido().stream().toList()),
-        resultado.paginaActual(),
-        resultado.totalPaginas(),
-        resultado.totalElementos());
-    return SuccessResponseHandler.SUCCESS(response);
-    */
   }
 
 }

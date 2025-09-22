@@ -24,7 +24,7 @@ public class SubMenuAggregate {
     this.nivel = nivel;
     this.ruta = ruta;
     this.orden = orden;
-    validarInvariantes();
+    validarReglasDeNegocio();
   }
 
 //  public static SubMenuAggregate crear(CrearMenuDomainCommand command) {
@@ -50,7 +50,7 @@ public class SubMenuAggregate {
    *
    * @throws IllegalArgumentException si alguna regla de negocio no se cumple
    */
-  private void validarInvariantes() {
+  private void validarReglasDeNegocio() {
     if (nombre == null) {
       throw new IllegalArgumentException("El nombre del menu no puede ser nulo");
     }

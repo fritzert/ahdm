@@ -1,6 +1,6 @@
 package pe.mef.sitfis.seguridad.application.command;
 
-public record ActualizarRolGrupoCommand(
+public record ActualizarRolGrupoApplicationCommand(
     Long id,
     Long rolId,
     Long grupoId,

@@ -8,6 +8,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -46,6 +47,7 @@ public class BeansConfig {
     return new ApplicationAuditorAware();
   }
 
+  /*
   @Bean
   public JwtDecoder jwtDecoder(
       @Value("${spring.security.oauth2.client.provider.sitfis-webapp.jwk-set-uri}") String jwkSetUri) {
@@ -55,6 +57,23 @@ public class BeansConfig {
             .expireAfterWrite(10, java.util.concurrent.TimeUnit.MINUTES)
             .build());
     return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).cache(jwkCache).build();
+  }
+  */
+
+  @Bean
+  public JwtDecoder jwtDecoder(
+      @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri) {
+    Cache jwkCache = new CaffeineCache("jwkCache",
+        Caffeine.newBuilder()
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .maximumSize(100)
+            .recordStats()
+            .build());
+
+    return NimbusJwtDecoder
+        .withIssuerLocation(issuerUri)
+        .cache(jwkCache)
+        .build();
   }
 
   @Bean

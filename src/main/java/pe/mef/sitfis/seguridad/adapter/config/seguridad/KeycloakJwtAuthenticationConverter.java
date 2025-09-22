@@ -16,13 +16,12 @@ public class KeycloakJwtAuthenticationConverter implements
 
   public KeycloakJwtAuthenticationConverter() {
     JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    this.delegate = new JwtAuthenticationConverter();
-    this.delegate.setPrincipalClaimName("preferred_username");
-
     // Configurar el conversor de authorities para personalizarlo
     //authoritiesConverter.setAuthoritiesClaimName("roles"); // roles estan en el claim "roles"
     //authoritiesConverter.setAuthorityPrefix("ROLE_");      // prefix para los roles
 
+    this.delegate = new JwtAuthenticationConverter();
+    this.delegate.setPrincipalClaimName("preferred_username");
     this.delegate.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
   }
 

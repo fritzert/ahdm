@@ -62,37 +62,37 @@ public class TokenUtils {
     }
   }
 
-  public static long obtenerSegundosRestantes(String token, RSAPublicKey publicKey) {
-    Claims claims = Jwts.parserBuilder()
-        .setSigningKey(publicKey)
-        .build()
-        .parseClaimsJws(token) // valida firma y estructura
-        .getBody();
+//  public static long obtenerSegundosRestantes(String token, RSAPublicKey publicKey) {
+//    Claims claims = Jwts.parserBuilder()
+//        .setSigningKey(publicKey)
+//        .build()
+//        .parseClaimsJws(token) // valida firma y estructura
+//        .getBody();
+//
+//    long expMillis = claims.getExpiration().getTime();
+//    long ahora = System.currentTimeMillis();
+//    long diffMillis = expMillis - ahora;
+//
+//    return Math.max(diffMillis / 1000, 0); // evita valores negativos
+//  }
 
-    long expMillis = claims.getExpiration().getTime();
-    long ahora = System.currentTimeMillis();
-    long diffMillis = expMillis - ahora;
-
-    return Math.max(diffMillis / 1000, 0); // evita valores negativos
-  }
-
-  public static String extraerKid(String token) {
-    String[] parts = token.split("\\.");
-    if (parts.length != 3) {
-      throw new IllegalArgumentException("Token JWT mal formado");
-    }
-
-    String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
-
-    Pattern pattern = Pattern.compile("\"kid\"\\s*:\\s*\"([^\"]+)\"");
-    Matcher matcher = pattern.matcher(headerJson);
-
-    if (matcher.find()) {
-      return matcher.group(1);
-    }
-
-    throw new IllegalArgumentException("No se encontró 'kid' en el header del JWT");
-  }
+//  public static String extraerKid(String token) {
+//    String[] parts = token.split("\\.");
+//    if (parts.length != 3) {
+//      throw new IllegalArgumentException("Token JWT mal formado");
+//    }
+//
+//    String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
+//
+//    Pattern pattern = Pattern.compile("\"kid\"\\s*:\\s*\"([^\"]+)\"");
+//    Matcher matcher = pattern.matcher(headerJson);
+//
+//    if (matcher.find()) {
+//      return matcher.group(1);
+//    }
+//
+//    throw new IllegalArgumentException("No se encontró 'kid' en el header del JWT");
+//  }
 
   public static String generarListaNegraKey(String token) {
     String cleaned = token.trim().replace("Bearer", "").trim();
