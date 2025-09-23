@@ -12,12 +12,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -25,136 +29,129 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import pe.mef.sitfis.seguridad.adapter.config.seguridad.CredencialesInvalidasException;
-import pe.mef.sitfis.seguridad.adapter.config.seguridad.KeycloakAuthException;
 import pe.mef.sitfis.seguridad.adapter.config.seguridad.KeycloakServiceException;
 import pe.mef.sitfis.seguridad.adapter.config.seguridad.TokenRevocationException;
-import pe.mef.sitfis.seguridad.adapter.config.seguridad.UsuarioNoEncontradoException;
 import pe.mef.sitfis.seguridad.adapter.config.util.TokenListaNegraService;
 import pe.mef.sitfis.seguridad.adapter.outbound.auth.dto.KeycloakUsuarioResponse;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class KeycloakClient {
 
-  private final WebClient webClient;
+  private final WebClient webClient; // WebClient para llamadas no seguras o con token manual
+  private final WebClient adminWebClient; // WebClient configurado para el cliente admin
+  private final ReactiveOAuth2AuthorizedClientManager authorizedClientManager;
   private final TokenListaNegraService tokenListaNegraService;
-  //  private final JwkCacheService jwkCacheService;
   private final JwtDecoder jwtDecoder;
 
-//  @Value("${spring.security.oauth2.client.provider.sitfis-webapp.token-uri}")
-//  private String tokenUrl;
-//  @Value("${keycloak.token-uri_revokeToken}")
-//  private String tokenUrlRevoke;
-//  @Value("${spring.security.oauth2.client.registration.sitfis-webapp.client-id}")
-//  private String clientId;
-//  @Value("${spring.security.oauth2.client.registration.sitfis-webapp.client-secret}")
-//  private String clientSecret;
-//  @Value("${keycloak.logout-uri}")
-//  private String logoutUrl;
-//
-//  @Value("${keycloak.master.token-uri}")
-//  private String masterUrl;
-//  @Value("${keycloak.master.username}")
-//  private String masterUsername;
-//  @Value("${keycloak.master.password}")
-//  private String masterPassword;
-//  @Value("${keycloak.user-validate}")
-//  private String usuarioValidacionUrl;
-
-  @Value("${keycloak.token-uri:#{null}}")
+  // Para usuarios normales
+  @Value("${keycloak.token-uri}")
   private String tokenUrl;
 
   @Value("${keycloak.token-revocation-uri}")
   private String tokenUrlRevoke;
 
-  @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
+  @Value("${spring.security.oauth2.client.registration.keycloak-user.client-id}")
   private String clientId;
 
-  @Value("${spring.security.oauth2.client.registration.keycloak.client-secret}")
+  @Value("${spring.security.oauth2.client.registration.keycloak-user.client-secret}")
   private String clientSecret;
 
   @Value("${keycloak.logout-uri}")
   private String logoutUrl;
 
-  // Admin Keycloak
-  @Value("${keycloak.admin.token-uri}")
-  private String masterTokenUrl;
+  @Value("${keycloak.users-endpoint}")
+  private String usersEndpoint;
 
-  @Value("${keycloak.admin.username}")
-  private String masterUsername;
+  public KeycloakClient(
+      WebClient.Builder webClientBuilder,
+      @Qualifier("keycloakAdminAuthorizedClientManager") ReactiveOAuth2AuthorizedClientManager authorizedClientManager,
+      TokenListaNegraService tokenListaNegraService,
+      JwtDecoder jwtDecoder) {
+    this.webClient = webClientBuilder.build();
+    this.authorizedClientManager = authorizedClientManager;
+    this.tokenListaNegraService = tokenListaNegraService;
+    this.jwtDecoder = jwtDecoder;
 
-  @Value("${keycloak.admin.password}")
-  private String masterPassword;
+    // Configura un WebClient que automáticamente obtiene y adjunta el token de admin
+    ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
+        new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+    oauth2Client.setDefaultClientRegistrationId("keycloak-admin");
+    this.adminWebClient = webClientBuilder.filter(oauth2Client).build();
+  }
 
-  @Value("${keycloak.admin.users-endpoint}")
-  private String usuarioValidacionUrl;
-
-//  public KeycloakClient(WebClient.Builder webClientBuilder,
-//      TokenListaNegraService tokenListaNegraService
-////      JwkCacheService jwkCacheService
-//  ) {
-//    this.webClient = webClientBuilder.build();
-//    this.tokenListaNegraService = tokenListaNegraService;
-////    this.jwkCacheService = jwkCacheService;
-//  }
-
+  /**
+   * Obtiene token de service account con permisos de admin Este token tiene roles: view-users,
+   * query-users, manage-users
+   */
   public String obtenerTokenAdmin() {
-    return webClient.post()
-        .uri(masterTokenUrl)
-        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        .body(BodyInserters
-            .fromFormData(GRANT_TYPE, PASSWORD)
-            .with(USERNAME, masterUsername)
-            .with(PASSWORD, masterPassword)
-            .with(CLIENT_ID, "admin-cli"))
-        .retrieve()
-        .onStatus(HttpStatusCode::is4xxClientError,
-            response -> response.bodyToMono(String.class)
-                .flatMap(error -> Mono.error(
-                    new KeycloakAuthException("Error de autenticación: " + error))))
-        .onStatus(HttpStatusCode::is5xxServerError,
-            response -> Mono.error(
-                new KeycloakServiceException("Keycloak no disponible")))
-//        .onStatus(
-//            status -> status.is4xxClientError() || status.is5xxServerError(),
-//            clientResponse -> Mono.error(
-//                new RuntimeException("Error en la solicitud: " + clientResponse.statusCode()))
-//        )
-        .bodyToMono(JsonNode.class)
-        .map(jsonNode -> jsonNode.get(ACCESS_TOKEN).asText())
-        .doOnSuccess(token -> log.debug("Token admin obtenido exitosamente"))
-        .doOnError(error -> log.error("Error obteniendo token admin: {}", error.getMessage()))
+    log.info("Obteniendo token de administrador para 'keycloak-admin'...");
+    return authorizedClientManager.authorize(
+            OAuth2AuthorizeRequest.withClientRegistrationId("keycloak-admin").principal("backend-admin-service").build())
+        .map(OAuth2AuthorizedClient::getAccessToken)
+        .map(token -> token.getTokenValue())
+        .doOnSuccess(token -> log.info("Token de administrador obtenido exitosamente."))
+        .doOnError(error -> log.error("Fallo al obtener el token de administrador.", error))
         .block();
   }
 
+  /**
+   * Busca usuario usando el token del service account
+   */
   public KeycloakUsuarioResponse buscarCuentaUsuario(String cuenta, String tokenAdmin) {
-    String url = String.format("%s?username=%s", usuarioValidacionUrl, cuenta);
+    // El tokenAdmin ya no es necesario, el adminWebClient lo gestiona solo.
+    String url = String.format("%s?username=%s", usersEndpoint, cuenta);
 
-    return webClient.get()
+    // 🔍 AGREGAR ESTOS LOGS DE DIAGNÓSTICO
+    log.info("🔍 DIAGNÓSTICO BÚSQUEDA - URL base: {}", usersEndpoint);
+    log.info("🔍 DIAGNÓSTICO BÚSQUEDA - URL completa: {}", url);
+    log.info("🔍 DIAGNÓSTICO BÚSQUEDA - Usuario buscado: {}", cuenta);
+
+    log.debug("Buscando usuario: {} en {}", cuenta, url);
+
+    return adminWebClient.get() // Usamos el WebClient configurado para admin
         .uri(url)
-        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin)
+        .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
         .retrieve()
-        .onStatus(HttpStatusCode::is4xxClientError,
+        .onStatus(status -> status.value() == 403,
             response -> response.bodyToMono(String.class)
-                .flatMap(error -> Mono.error(
-                    new UsuarioNoEncontradoException("Usuario no encontrado: " + cuenta))))
+                .flatMap(error -> {
+                  log.error("❌ 403 - Service account sin permisos. Error: {}", error);
+                  String adminClientId = "backend-admin-service"; // O leer de properties
+                  log.error("🔍 Headers enviados:");
+                  // El token ya no se maneja manualmente, pero podemos loguear el intento
+                  log.error("   - Authorization: Bearer [token gestionado por Spring]");
+                  log.error("   - Accept: {}", MediaType.APPLICATION_JSON_VALUE);
+                  log.error("   - URL: {}", url);
+                  log.error("Asegurar que {} tenga roles: view-users, query-users", adminClientId);
+                  return Mono.error(
+                      new RuntimeException(
+                          "Service account sin permisos (view-users, query-users)"));
+                }))
+        .onStatus(status -> status.value() == 401,
+            response -> response.bodyToMono(String.class)
+                .flatMap(error -> {
+                  log.error("❌ 401 - Token inválido: {}", error);
+                  return Mono.error(
+                      new RuntimeException("Token admin inválido"));
+                }))
         .onStatus(HttpStatusCode::is5xxServerError,
             response -> Mono.error(
-                new KeycloakServiceException("Error al buscar usuario")))
+                new RuntimeException("Keycloak no disponible")))
         .bodyToMono(JsonNode.class)
         .mapNotNull(jsonNode -> {
           if (jsonNode.isArray() && !jsonNode.isEmpty()) {
             JsonNode firstUser = jsonNode.get(0);
+            log.info("✅ Usuario encontrado: {}", cuenta);
             return new KeycloakUsuarioResponse(
                 firstUser.get("username").asText(),
                 firstUser.get("firstName").asText(),
                 firstUser.get("lastName").asText()
             );
           }
-          log.warn("Usuario no encontrado en Keycloak: {}", cuenta);
-          return null;
+          log.info("Usuario no encontrado en Keycloak: {}", cuenta);
+          return null; // Usuario no existe - esto NO es un error
         })
         .block();
   }
@@ -164,11 +161,16 @@ public class KeycloakClient {
         .uri(tokenUrl)
         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         .body(BodyInserters
-            .fromFormData(GRANT_TYPE, PASSWORD)
-            .with(USERNAME, username)
-            .with(PASSWORD, password)
-            .with(CLIENT_ID, clientId)
-            .with(CLIENT_SECRET, clientSecret)
+            .fromFormData("grant_type", "password")
+            .with("username", username)
+            .with("password", password)
+            .with("client_id", clientId)
+            .with("client_secret", clientSecret)
+//            .fromFormData(GRANT_TYPE, PASSWORD)
+//            .with(USERNAME, username)
+//            .with(PASSWORD, password)
+//            .with(CLIENT_ID, clientId)
+//            .with(CLIENT_SECRET, clientSecret)
         )
         .retrieve()
         .onStatus(HttpStatusCode::isError,
@@ -212,7 +214,7 @@ public class KeycloakClient {
     try {
       Jwt jwt = jwtDecoder.decode(token);
 
-      // Obtener la expiración del token
+      // Obtener la expiracion del token
       Instant expiration = jwt.getExpiresAt();
       if (expiration == null) {
         log.warn("Token sin fecha de expiración, usando TTL por defecto");
@@ -221,7 +223,6 @@ public class KeycloakClient {
 
       // Calcular tiempo restante
       Duration ttl = Duration.between(Instant.now(), expiration);
-
       if (ttl.isNegative() || ttl.isZero()) {
         log.info("Token ya expirado, no es necesario invalidarlo");
         return;
@@ -237,7 +238,6 @@ public class KeycloakClient {
           .subscribe();
     } catch (JwtException e) {
       log.error("Error al decodificar token para invalidación: {}", e.getMessage());
-      // Aún así agregarlo a la blacklist con TTL por defecto
       tokenListaNegraService.guardarTokenlistaNegraRedis(token, Duration.ofHours(1))
           .subscribe();
     }

@@ -174,7 +174,9 @@ public class UsuarioServiceImpl implements UsuarioService {
   @Override
   public UsuarioDisponibleResponse verificarDisponibilidadUsuario(String cuenta) {
     var tokenAdmin = keycloakClient.obtenerTokenAdmin();
+    log.info("Token administrador: {}", tokenAdmin);
     var usuarioKeycloak = keycloakClient.buscarCuentaUsuario(cuenta, tokenAdmin);
+    log.info("Usuario Keycloak: {}", usuarioKeycloak);
     if (usuarioKeycloak == null) {
       return new UsuarioDisponibleResponse(Boolean.FALSE,
           "El usuario no existe en el Active Directory",
